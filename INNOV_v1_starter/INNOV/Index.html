@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('Styles'); ?>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">IN</div>
+          <div><div class="brand-name">INNOV</div><div class="brand-caption">EVENT OPERATIONS</div></div>
+        </div>
+        <div class="nav-label">WORKSPACE</div>
+        <button class="nav-item active" data-page="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-item" data-page="requests"><span>▤</span> Event requests <span id="pendingBadge" class="nav-count">0</span></button>
+        <button class="nav-item" data-page="members"><span>♙</span> Members portal</button>
+        <button class="nav-item" data-page="staffing"><span>☷</span> Staffing & receipts</button>
+        <div class="sidebar-bottom">
+          <div class="profile-dot">EB</div>
+          <div><div class="profile-name">Editorial Board</div><div class="profile-role">Workspace</div></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div><div class="eyebrow">EVENT MANAGEMENT</div><h1 id="pageTitle">Dashboard</h1></div>
+          <div class="top-actions"><span class="connection"><span class="connection-dot"></span> Google Sheets</span><button class="btn btn-light" id="refreshBtn">↻ Refresh</button></div>
+        </header>
+        <div id="notice" class="notice hidden"></div>
+        <section id="dashboardPage" class="page">
+          <div class="welcome-row"><div><h2>Good to see you.</h2><p>Here’s what’s happening across your event requests.</p></div><button class="btn btn-primary" id="syncBtn">＋ Sync form responses</button></div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-number" id="statTotal">0</div><div class="stat-foot">Imported into INNOV</div></div>
+            <div class="stat-card"><div class="stat-label">Pending review</div><div class="stat-number" id="statPending">0</div><div class="stat-foot"><span class="dot dot-amber"></span> Awaiting decision</div></div>
+            <div class="stat-card"><div class="stat-label">Open for staffing</div><div class="stat-number" id="statOpen">0</div><div class="stat-foot">Members can volunteer</div></div>
+            <div class="stat-card"><div class="stat-label">Receipts sent</div><div class="stat-number" id="statReceipts">0</div><div class="stat-foot">Manually sent by the board</div></div>
+          </div>
+          <div class="section-heading"><div><h2>Recent requests</h2><p>Review new submissions and follow their progress.</p></div><button class="text-button" data-goto="requests">View all requests →</button></div>
+          <div id="recentEvents" class="event-list"></div>
+          <div class="footnote">INNOV starter version · Always review event details before sending an email.</div>
+        </section>
+
+        <section id="requestsPage" class="page hidden">
+          <div class="page-intro"><div><h2>Event requests</h2><p>Review new submissions from organizations.</p></div><button class="btn btn-primary" id="syncBtn2">↻ Sync Google Form</button></div>
+          <div class="filter-row"><input id="searchInput" class="search" placeholder="Search events or organizations…"><select id="statusFilter" class="select"><option value="All">All statuses</option><option>Pending Review</option><option>Approved for Staffing</option><option>Rejected</option><option>Receipt Sent</option></select></div>
+          <div id="allEvents" class="event-list"></div>
+        </section>
+
+        <section id="membersPage" class="page hidden">
+          <div class="page-intro"><div><h2>Members portal</h2><p>Approved events are available for coverage volunteers.</p></div></div>
+          <div class="member-callout"><div class="callout-icon">✦</div><div><strong>Find your next assignment</strong><p>Choose an event and a coverage role. Your signup will be shared with the Editorial Board.</p></div></div>
+          <div class="member-form"><div class="field"><label>Your full name</label><input id="memberName" placeholder="e.g. Alex Santos"></div><div class="field"><label>Your email</label><input id="memberEmail" type="email" placeholder="you@example.com"></div></div>
+          <div id="memberEvents" class="event-list"></div>
+        </section>
+
+        <section id="staffingPage" class="page hidden">
+          <div class="page-intro"><div><h2>Staffing & receipts</h2><p>Check lineups and manually send acknowledgement receipts.</p></div></div>
+          <div class="policy-banner"><strong>Manual sending only</strong><span>INNOV never sends an acknowledgement receipt automatically. Vacant roles require confirmation before sending.</span></div>
+          <div id="staffingEvents" class="event-list"></div>
+        </section>
+        <footer>INNOV <span>•</span> Integrated News and Operations Venue</footer>
+      </main>
+    </div>
+    <div id="modalRoot"></div>
+    <?!= include('Client'); ?>
+  </body>
+</html>

@@ -1,0 +1,153 @@
+<script>
+let appData = {events:[], assignments:[], members:[], roles:[], emailConfigured:false};
+const $ = id => document.getElementById(id);
+const pages = ['dashboard','requests','members','staffing'];
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showPage(b.dataset.goto)));
+  $('refreshBtn').addEventListener('click', loadData);
+  $('syncBtn').addEventListener('click', syncResponses);
+  $('syncBtn2').addEventListener('click', syncResponses);
+  $('searchInput').addEventListener('input', renderRequests);
+  $('statusFilter').addEventListener('change', renderRequests);
+  loadData();
+});
+function showPage(page) {
+  pages.forEach(p => $(p+'Page').classList.toggle('hidden', p !== page));
+  document.querySelectorAll('[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  $('pageTitle').textContent = ({dashboard:'Dashboard',requests:'Event requests',members:'Members portal',staffing:'Staffing & receipts'})[page];
+  if (page === 'members') renderMembers();
+  if (page === 'staffing') renderStaffing();
+}
+function loadData() {
+  setNotice('Loading INNOV data…','info');
+  google.script.run.withSuccessHandler(data => {
+    appData = data;
+    renderAll();
+    setNotice('Data refreshed successfully.','success');
+    setTimeout(() => hideNotice(), 2200);
+  }).withFailureHandler(err => setNotice(err.message || String(err),'error')).getAppData();
+}
+function syncResponses() {
+  $('syncBtn').disabled = true; $('syncBtn2').disabled = true;
+  google.script.run.withSuccessHandler(result => {
+    $('syncBtn').disabled = false; $('syncBtn2').disabled = false;
+    setNotice(result.message,'success'); loadData();
+  }).withFailureHandler(err => {
+    $('syncBtn').disabled = false; $('syncBtn2').disabled = false;
+    setNotice(err.message || String(err),'error');
+  }).syncFormResponses();
+}
+function renderAll() {
+  const ev = appData.events || [];
+  $('statTotal').textContent = ev.length;
+  $('statPending').textContent = ev.filter(e=>e.status==='Pending Review').length;
+  $('statOpen').textContent = ev.filter(e=>e.status==='Approved for Staffing').length;
+  $('statReceipts').textContent = ev.filter(e=>String(e.receiptSent).toLowerCase()==='yes').length;
+  $('pendingBadge').textContent = ev.filter(e=>e.status==='Pending Review').length;
+  renderRecent(); renderRequests(); renderMembers(); renderStaffing();
+}
+function renderRecent() {
+  const events = (appData.events||[]).slice().reverse().slice(0,5);
+  $('recentEvents').innerHTML = events.length ? events.map(e=>eventRow(e,'recent')).join('') : empty('No requests imported yet','Click “Sync form responses” to import requests from your Google Form response sheet.');
+}
+function renderRequests() {
+  const q = ($('searchInput').value||'').toLowerCase();
+  const status = $('statusFilter').value;
+  const events = (appData.events||[]).filter(e =>
+    (status==='All'||e.status===status) &&
+    [e.title,e.organization,e.contactPerson,e.email].some(v=>String(v||'').toLowerCase().includes(q))
+  ).slice().reverse();
+  $('allEvents').innerHTML = events.length ? events.map(e=>eventRow(e,'requests')).join('') : empty('No matching requests','Try a different search or sync your latest form responses.');
+}
+function renderMembers() {
+  const events = (appData.events||[]).filter(e=>e.status==='Approved for Staffing');
+  $('memberEvents').innerHTML = events.length ? events.map(e=>eventRow(e,'members')).join('') : empty('No active events yet','Approved requests will appear here when the Editorial Board opens them for staffing.');
+}
+function renderStaffing() {
+  const events = (appData.events||[]).filter(e=>['Approved for Staffing','Receipt Sent'].includes(e.status)).slice().reverse();
+  $('staffingEvents').innerHTML = events.length ? events.map(e=>eventRow(e,'staffing')).join('') : empty('No events in staffing','Approve an event request to start building its coverage lineup.');
+}
+function eventRow(e, context) {
+  const d = parseDate(e.eventDate);
+  const date = `<div class="event-datebox"><strong>${esc(d.day)}</strong><span>${esc(d.month)}</span></div>`;
+  const meta = [e.organization || 'Organization not specified', e.venue || 'Venue not specified', e.eventDate || 'Date not specified'].map(esc).join('<span>·</span>');
+  const status = `<span class="status ${statusClass(e.status)}">${esc(e.status||'Unknown')}</span>`;
+  let actions = '';
+  if (context==='requests' || context==='recent') {
+    if (e.status==='Pending Review') actions = `<button class="btn btn-primary" onclick="approveEvent('${escAttr(e.eventId)}')">Review</button>`;
+    else if (e.status==='Approved for Staffing') actions = `<button class="btn btn-light" onclick="goStaffing()">View lineup</button>`;
+  }
+  if (context==='members') actions = `<button class="btn btn-primary" onclick="openVolunteer('${escAttr(e.eventId)}')">Volunteer</button>`;
+  if (context==='staffing') actions = `<button class="btn btn-light" onclick="showLineup('${escAttr(e.eventId)}')">View lineup</button>` +
+    (e.receiptSent==='Yes' ? `<span class="status status-receipt">Receipt sent</span>` : `<button class="btn btn-primary" onclick="receiptAction('${escAttr(e.eventId)}')">Send receipt</button>`);
+  const chips = context==='staffing' ? `<div class="lineup">${(appData.roles||[]).map(r=>`<span class="role-chip ${e.assignments.some(a=>a.role===r)?'filled':''}">${esc(r)} · ${e.assignments.some(a=>a.role===r)?'Filled':'Vacant'}</span>`).join('')}</div>` : '';
+  return `<article class="event-row">${date}<div class="event-main"><div class="event-title">${esc(e.title||'Untitled event')}</div><div class="event-meta">${meta}</div>${chips}</div>${status}<div class="event-actions">${actions}</div></article>`;
+}
+function approveEvent(id) {
+  const e = appData.events.find(x=>x.eventId===id); if(!e) return;
+  showModal(`<h2>Review event request</h2><p>Choose how to respond to <strong>${esc(e.title)}</strong> from ${esc(e.organization||'the organization')}.</p><div class="lineup-list">Approving opens this event to members for staffing.<br>Rejecting sends an email to the sender through Outlook.</div><div class="modal-actions"><button class="btn btn-light" onclick="closeModal()">Cancel</button><button class="btn btn-danger" onclick="rejectEvent('${escAttr(id)}')">Reject</button><button class="btn btn-primary" onclick="approveConfirmed('${escAttr(id)}')">Approve for staffing</button></div>`);
+}
+function approveConfirmed(id) {
+  closeModal(); setNotice('Approving event…','info');
+  google.script.run.withSuccessHandler(data=>{appData=data;renderAll();setNotice('Event approved and now visible to members.','success');}).withFailureHandler(err=>setNotice(err.message||String(err),'error')).reviewEvent(id,'Approved for Staffing','');
+}
+function rejectEvent(id) {
+  showModal(`<h2>Reject request</h2><p>Enter a reason. INNOV will email the requester through Outlook.</p><div class="field"><label>Reason for rejection</label><textarea id="rejectReason" placeholder="Explain why this request cannot be accepted…" required></textarea></div><div class="modal-actions"><button class="btn btn-light" onclick="approveEvent('${escAttr(id)}')">Back</button><button class="btn btn-danger" onclick="rejectConfirmed('${escAttr(id)}')">Send rejection email</button></div>`);
+}
+function rejectConfirmed(id) {
+  const reason = $('rejectReason').value.trim(); if(!reason){setNotice('Please enter a rejection reason.','error');return;}
+  closeModal(); setNotice('Sending rejection email…','info');
+  google.script.run.withSuccessHandler(data=>{appData=data;renderAll();setNotice('Request rejected and email sent.','success');}).withFailureHandler(err=>setNotice(err.message||String(err),'error')).reviewEvent(id,'Rejected',reason);
+}
+function openVolunteer(id) {
+  const name = $('memberName').value.trim(), email = $('memberEmail').value.trim();
+  if(!name || !email){showModal(`<h2>Before you volunteer</h2><p>Enter your name and email in the member details fields above the event list.</p><div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">Got it</button></div>`);return;}
+  const e = appData.events.find(x=>x.eventId===id);
+  const options = (appData.roles||[]).map(r=>`<option value="${escAttr(r)}">${esc(r)}</option>`).join('');
+  showModal(`<h2>Volunteer for event</h2><p>${esc(e.title)} · ${esc(e.eventDate||'Date TBD')}</p><div class="field"><label>Choose your coverage role</label><select id="volunteerRole">${options}</select></div><div class="subtle">Name: ${esc(name)} · ${esc(email)}</div><div class="modal-actions"><button class="btn btn-light" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitVolunteer('${escAttr(id)}')">Confirm volunteer</button></div>`);
+}
+function submitVolunteer(id) {
+  const name=$('memberName').value.trim(), email=$('memberEmail').value.trim(), role=$('volunteerRole').value;
+  closeModal(); setNotice('Saving your signup…','info');
+  google.script.run.withSuccessHandler(data=>{appData=data;renderAll();showPage('members');setNotice('You have volunteered successfully.','success');}).withFailureHandler(err=>setNotice(err.message||String(err),'error')).volunteerForEvent(id,role,name,email);
+}
+function receiptAction(id) {
+  const e = appData.events.find(x=>x.eventId===id); if(!e) return;
+  if(e.receiptSent==='Yes'){setNotice('Receipt already sent for this event.','info');return;}
+  if(!appData.emailConfigured){showModal(`<h2>Outlook is not configured</h2><p>Before sending emails, complete the Microsoft Graph setup in README.md. No email has been sent.</p><div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">Understood</button></div>`);return;}
+  const vacancies=e.vacantRoles||[];
+  const vacancyText=vacancies.length?`<div class="lineup-list"><strong>Vacant roles (${vacancies.length})</strong><br>${vacancies.map(esc).join('<br>')}<br><br>You can wait for the lineup to fill, or send the receipt anyway.</div>`:`<div class="lineup-list">All coverage roles are filled. You can manually send the acknowledgement receipt.</div>`;
+  showModal(`<h2>Send acknowledgement receipt?</h2><p>To: ${esc(e.email||'No requester email provided')}<br>Event: ${esc(e.title)}</p>${vacancyText}<div class="modal-actions"><button class="btn btn-light" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="confirmReceipt('${escAttr(id)}',${vacancies.length?'true':'false'})">${vacancies.length?'Send anyway':'Send receipt'}</button></div>`);
+}
+function confirmReceipt(id, vacanciesExist) {
+  closeModal(); setNotice('Sending acknowledgement receipt…','info');
+  google.script.run.withSuccessHandler(result=>{
+    if(result && result.needsConfirmation){
+      const roles=result.vacantRoles||[];
+      showModal(`<h2>Vacant positions remain</h2><p>The following roles are not filled:</p><div class="lineup-list">${roles.map(esc).join('<br>')}</div><p>Do you want to send the acknowledgement receipt anyway?</p><div class="modal-actions"><button class="btn btn-light" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="confirmReceipt('${escAttr(id)}',true)">Send anyway</button></div>`);
+      return;
+    }
+    appData=result.data||result;renderAll();setNotice('Acknowledgement receipt sent and logged.','success');
+  }).withFailureHandler(err=>setNotice(err.message||String(err),'error')).sendAcknowledgementReceipt(id,!!vacanciesExist);
+}
+function showLineup(id) {
+  const e=appData.events.find(x=>x.eventId===id); if(!e)return;
+  const body=(appData.roles||[]).map(r=>{const names=e.assignments.filter(a=>a.role===r).map(a=>a.memberName);return r+': '+(names.length?names.join(', '):'Vacant');}).join('\n');
+  showModal(`<h2>${esc(e.title)} — lineup</h2><p>${e.filledRoleCount} of ${e.totalRoles} coverage roles filled.</p><div class="lineup-list">${esc(body)}</div><div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">Close</button></div>`);
+}
+function goStaffing(){showPage('staffing')}
+function parseDate(value) {
+  if(!value)return {day:'—',month:'TBD'};
+  const d=new Date(value); if(isNaN(d.getTime()))return {day:'—',month:'TBD'};
+  return {day:String(d.getDate()).padStart(2,'0'),month:d.toLocaleString('en-US',{month:'short'})};
+}
+function statusClass(s){if(s==='Pending Review')return 'status-pending';if(s==='Approved for Staffing')return 'status-approved';if(s==='Rejected')return 'status-rejected';if(s==='Receipt Sent')return 'status-receipt';return 'status-other'}
+function empty(title,desc){return `<div class="empty-state"><strong>${esc(title)}</strong><p>${esc(desc)}</p></div>`}
+function showModal(html){$('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`}
+function closeModal(){$('modalRoot').innerHTML=''}
+function setNotice(msg,type){$('notice').textContent=msg;$('notice').className='notice '+type}
+function hideNotice(){$('notice').className='notice hidden'}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escAttr(v){return esc(v).replace(/`/g,'&#96;')}
+</script>
