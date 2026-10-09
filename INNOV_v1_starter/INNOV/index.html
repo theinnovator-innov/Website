@@ -1,68 +1,112 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <?!= include('Styles'); ?>
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark">IN</div>
-          <div><div class="brand-name">INNOV</div><div class="brand-caption">EVENT OPERATIONS</div></div>
-        </div>
-        <div class="nav-label">WORKSPACE</div>
-        <button class="nav-item active" data-page="dashboard"><span>▦</span> Dashboard</button>
-        <button class="nav-item" data-page="requests"><span>▤</span> Event requests <span id="pendingBadge" class="nav-count">0</span></button>
-        <button class="nav-item" data-page="members"><span>♙</span> Members portal</button>
-        <button class="nav-item" data-page="staffing"><span>☷</span> Staffing & receipts</button>
-        <div class="sidebar-bottom">
-          <div class="profile-dot">EB</div>
-          <div><div class="profile-name">Editorial Board</div><div class="profile-role">Workspace</div></div>
-        </div>
-      </aside>
-
-      <main class="main">
-        <header class="topbar">
-          <div><div class="eyebrow">EVENT MANAGEMENT</div><h1 id="pageTitle">Dashboard</h1></div>
-          <div class="top-actions"><span class="connection"><span class="connection-dot"></span> Google Sheets</span><button class="btn btn-light" id="refreshBtn">↻ Refresh</button></div>
-        </header>
-        <div id="notice" class="notice hidden"></div>
-        <section id="dashboardPage" class="page">
-          <div class="welcome-row"><div><h2>Good to see you.</h2><p>Here’s what’s happening across your event requests.</p></div><button class="btn btn-primary" id="syncBtn">＋ Sync form responses</button></div>
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-number" id="statTotal">0</div><div class="stat-foot">Imported into INNOV</div></div>
-            <div class="stat-card"><div class="stat-label">Pending review</div><div class="stat-number" id="statPending">0</div><div class="stat-foot"><span class="dot dot-amber"></span> Awaiting decision</div></div>
-            <div class="stat-card"><div class="stat-label">Open for staffing</div><div class="stat-number" id="statOpen">0</div><div class="stat-foot">Members can volunteer</div></div>
-            <div class="stat-card"><div class="stat-label">Receipts sent</div><div class="stat-number" id="statReceipts">0</div><div class="stat-foot">Manually sent by the board</div></div>
-          </div>
-          <div class="section-heading"><div><h2>Recent requests</h2><p>Review new submissions and follow their progress.</p></div><button class="text-button" data-goto="requests">View all requests →</button></div>
-          <div id="recentEvents" class="event-list"></div>
-          <div class="footnote">INNOV starter version · Always review event details before sending an email.</div>
-        </section>
-
-        <section id="requestsPage" class="page hidden">
-          <div class="page-intro"><div><h2>Event requests</h2><p>Review new submissions from organizations.</p></div><button class="btn btn-primary" id="syncBtn2">↻ Sync Google Form</button></div>
-          <div class="filter-row"><input id="searchInput" class="search" placeholder="Search events or organizations…"><select id="statusFilter" class="select"><option value="All">All statuses</option><option>Pending Review</option><option>Approved for Staffing</option><option>Rejected</option><option>Receipt Sent</option></select></div>
-          <div id="allEvents" class="event-list"></div>
-        </section>
-
-        <section id="membersPage" class="page hidden">
-          <div class="page-intro"><div><h2>Members portal</h2><p>Approved events are available for coverage volunteers.</p></div></div>
-          <div class="member-callout"><div class="callout-icon">✦</div><div><strong>Find your next assignment</strong><p>Choose an event and a coverage role. Your signup will be shared with the Editorial Board.</p></div></div>
-          <div class="member-form"><div class="field"><label>Your full name</label><input id="memberName" placeholder="e.g. Alex Santos"></div><div class="field"><label>Your email</label><input id="memberEmail" type="email" placeholder="you@example.com"></div></div>
-          <div id="memberEvents" class="event-list"></div>
-        </section>
-
-        <section id="staffingPage" class="page hidden">
-          <div class="page-intro"><div><h2>Staffing & receipts</h2><p>Check lineups and manually send acknowledgement receipts.</p></div></div>
-          <div class="policy-banner"><strong>Manual sending only</strong><span>INNOV never sends an acknowledgement receipt automatically. Vacant roles require confirmation before sending.</span></div>
-          <div id="staffingEvents" class="event-list"></div>
-        </section>
-        <footer>INNOV <span>•</span> Integrated News and Operations Venue</footer>
-      </main>
-    </div>
-    <div id="modalRoot"></div>
-    <?!= include('Client'); ?>
-  </body>
-</html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>INNOV — Event Operations</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{--bg:#f7f8fc;--paper:#fff;--ink:#20283a;--muted:#7c879a;--line:#e8ebf2;--blue:#365de8;--blue2:#edf1ff;--green:#16865b;--greenbg:#e8f7ef;--amber:#a86b12;--amberbg:#fff4dd;--red:#bd4545;--redbg:#fff0f0;--shadow:0 8px 28px rgba(24,36,66,.045)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px 'DM Sans',sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.layout{min-height:100vh;display:flex}.side{width:248px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);padding:25px 15px;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;padding:0 9px 38px}.logo{width:40px;height:40px;border-radius:12px;background:var(--blue);color:white;display:grid;place-items:center;font:800 13px Manrope;letter-spacing:-.5px}.brand b{font:800 20px Manrope;letter-spacing:1.2px}.brand small{display:block;color:#9aa3b3;font-size:9px;letter-spacing:1.5px;margin-top:2px}.navlabel{padding:0 12px 10px;color:#a0a8b6;font-size:10px;letter-spacing:1.4px;font-weight:700}.nav{display:flex;align-items:center;gap:11px;padding:12px;border:0;background:transparent;border-radius:9px;color:#667287;text-align:left;margin:2px 0;width:100%;font-weight:600}.nav .ico{width:20px;text-align:center;font-size:16px}.nav.active{background:var(--blue2);color:var(--blue)}.badge{margin-left:auto;border-radius:6px;background:#fff;padding:3px 7px;font-size:10px}.sidebottom{margin-top:auto;border-top:1px solid var(--line);padding:18px 8px 0;display:flex;gap:10px;align-items:center}.avatar{width:36px;height:36px;border-radius:50%;background:#e8edff;color:#3654c0;display:grid;place-items:center;font-weight:700;font-size:11px}.sidebottom b{font-size:12px}.sidebottom small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.main{min-width:0;flex:1;padding:0 38px 25px;max-width:1600px}.top{height:93px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}.eyebrow{color:#9aa3b3;font-size:10px;font-weight:700;letter-spacing:1.6px;margin-bottom:5px}h1{font:800 23px Manrope;margin:0;letter-spacing:-.7px}h2{font:750 18px Manrope;margin:0;letter-spacing:-.3px}p{margin:5px 0 0;color:var(--muted);line-height:1.55}.topright{display:flex;align-items:center;gap:12px}.connected{font-size:11px;color:#728096}.green-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#23a36e;margin-right:6px}.btn{border:1px solid transparent;border-radius:8px;padding:10px 13px;font-weight:700;font-size:12px}.primary{background:var(--blue);color:#fff}.primary:hover{background:#294dcc}.light{background:#fff;border-color:var(--line);color:#566176}.danger{background:var(--redbg);border-color:#f2dddd;color:var(--red)}.mutedbtn{background:#f2f4f8;color:#667287}.intro{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.intro p{font-size:12px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:33px}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:19px;box-shadow:var(--shadow)}.statlabel{font-size:12px;color:#6d788c;font-weight:600}.num{font:800 31px Manrope;letter-spacing:-1px;margin:13px 0 8px}.statfoot{font-size:11px;color:#929bac}.sectionhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.sectionhead p{font-size:12px}.linkbtn{border:0;background:transparent;color:var(--blue);font-size:12px;font-weight:700}.list{display:flex;flex-direction:column;gap:10px}.event{display:flex;align-items:center;gap:15px;padding:16px 17px;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}.datebox{width:47px;height:49px;flex-shrink:0;border:1px solid var(--line);border-radius:9px;background:#fbfcff;display:flex;align-items:center;justify-content:center;flex-direction:column}.datebox b{font:800 16px Manrope}.datebox small{font-size:9px;text-transform:uppercase;color:#929bac;margin-top:2px}.eventbody{min-width:0;flex:1}.eventtitle{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:11px;color:#8b95a6;display:flex;flex-wrap:wrap;gap:7px;margin-top:5px}.status{font-size:10px;font-weight:700;padding:6px 9px;border-radius:30px;white-space:nowrap}.pending{background:var(--amberbg);color:var(--amber)}.approved{background:var(--greenbg);color:var(--green)}.rejected{background:var(--redbg);color:var(--red)}.sent{background:var(--blue2);color:var(--blue)}.actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.page{display:none}.page.activepage{display:block}.filter{display:flex;gap:10px;margin-bottom:16px}.filter input,.filter select,.field input,.field select,.field textarea{border:1px solid #e2e6ee;background:#fff;border-radius:8px;padding:11px 12px;outline:none;color:var(--ink)}.filter input{flex:1;min-width:0}.filter select{min-width:180px}.field{display:flex;flex-direction:column;gap:7px;margin:12px 0}.field label{font-size:11px;color:#6b768a;font-weight:700}.field input,.field select,.field textarea{width:100%}.field textarea{min-height:92px;resize:vertical}.callout{display:flex;gap:12px;background:#edf2ff;border:1px solid #dce5ff;border-radius:10px;padding:15px;margin-bottom:15px}.callouticon{width:32px;height:32px;border-radius:9px;background:#fff;color:var(--blue);display:grid;place-items:center}.callout b{font-size:12px}.callout p{font-size:11px;color:#66759a}.memberform{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#fff;border:1px solid var(--line);padding:15px;border-radius:11px;margin-bottom:15px}.policy{background:#fff7e9;border:1px solid #f2e2c1;border-radius:10px;padding:14px 16px;margin-bottom:16px}.policy b{font-size:12px;color:#8e5c14}.policy p{font-size:11px;color:#9a7a4e}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.chip{font-size:10px;background:#f0f2f7;color:#707b8f;padding:5px 8px;border-radius:6px}.chip.filled{background:var(--greenbg);color:var(--green)}.empty{background:#fff;border:1px dashed #dfe4ed;border-radius:11px;text-align:center;padding:34px;color:#8994a7}.empty b{font-size:13px;color:#4e5a70}.empty p{font-size:11px}.notice{padding:11px 14px;border-radius:8px;margin-bottom:15px;font-size:12px;font-weight:600}.notice.ok{background:var(--greenbg);color:var(--green)}.notice.err{background:var(--redbg);color:var(--red)}.notice.info{background:var(--blue2);color:var(--blue)}.hidden{display:none!important}footer{border-top:1px solid var(--line);margin-top:35px;padding-top:16px;color:#a0a7b4;font-size:10px}.modalbg{position:fixed;inset:0;background:#1a274466;display:grid;place-items:center;padding:16px;z-index:9}.modal{background:white;width:min(480px,100%);padding:24px;border-radius:14px;box-shadow:0 20px 70px #0d173333}.modal h2{margin-bottom:8px}.modal p{font-size:12px;margin-bottom:14px}.modalactions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}.summary{background:#f7f8fb;border-radius:8px;padding:12px;font-size:12px;line-height:1.8;white-space:pre-line}.toast{position:fixed;right:22px;bottom:22px;z-index:20;padding:12px 16px;border-radius:9px;background:#20283a;color:#fff;box-shadow:var(--shadow);font-size:12px}
+@media(max-width:1000px){.side{width:205px}.main{padding:0 22px 20px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.event{flex-wrap:wrap}.actions{width:100%;justify-content:flex-start;padding-left:62px}}@media(max-width:650px){.layout{display:block}.side{width:100%;padding:12px;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:0 7px 12px}.navlabel,.sidebottom{display:none}.nav{display:inline-flex;width:auto;padding:9px 8px;font-size:11px;gap:5px}.nav .ico{font-size:13px;width:auto}.main{padding:0 13px 20px}.top{height:76px;margin-bottom:20px}.top h1{font-size:19px}.connected{display:none}.intro{align-items:flex-start;flex-direction:column}.stats{gap:8px}.stat{padding:13px}.num{font-size:25px}.statfoot{font-size:10px}.filter{flex-direction:column}.filter select{width:100%}.memberform{grid-template-columns:1fr}.event{padding:12px}.actions{padding-left:0}.status{margin-left:auto}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="side">
+  <div class="brand"><div class="logo">IN</div><div><b>INNOV</b><small>EVENT OPERATIONS</small></div></div>
+  <div class="navlabel">WORKSPACE</div>
+  <button class="nav active" data-page="dashboard"><span class="ico">▦</span> Dashboard</button>
+  <button class="nav" data-page="requests"><span class="ico">▤</span> Event requests <span class="badge" id="pendingCount">2</span></button>
+  <button class="nav" data-page="members"><span class="ico">♙</span> Members portal</button>
+  <button class="nav" data-page="staffing"><span class="ico">☷</span> Staffing & receipts</button>
+  <div class="sidebottom"><div class="avatar">EB</div><div><b>Editorial Board</b><small>INNOV workspace</small></div></div>
+</aside>
+<main class="main">
+<header class="top"><div><div class="eyebrow">EVENT MANAGEMENT</div><h1 id="pageTitle">Dashboard</h1></div><div class="topright"><span class="connected"><span class="green-dot"></span>Demo data</span><button class="btn light" id="resetBtn">↻ Reset demo</button></div></header>
+<div id="notice"></div>
+<section class="page activepage" id="dashboard">
+  <div class="intro"><div><h2>Good to see you.</h2><p>Here’s what’s happening across your event requests.</p></div><button class="btn primary" onclick="goto('requests')">＋ Review requests</button></div>
+  <div class="stats">
+    <div class="stat"><div class="statlabel">Total requests</div><div class="num" id="totalNum">6</div><div class="statfoot">All imported event requests</div></div>
+    <div class="stat"><div class="statlabel">Pending review</div><div class="num" id="pendingNum">2</div><div class="statfoot">Awaiting a board decision</div></div>
+    <div class="stat"><div class="statlabel">Open for staffing</div><div class="num" id="openNum">3</div><div class="statfoot">Members can volunteer</div></div>
+    <div class="stat"><div class="statlabel">Receipts sent</div><div class="num" id="sentNum">1</div><div class="statfoot">Manually sent by the board</div></div>
+  </div>
+  <div class="sectionhead"><div><h2>Recent requests</h2><p>Review new submissions and follow their progress.</p></div><button class="linkbtn" onclick="goto('requests')">View all requests →</button></div>
+  <div class="list" id="recentList"></div>
+</section>
+<section class="page" id="requests">
+  <div class="intro"><div><h2>Event requests</h2><p>Review incoming requests and decide what happens next.</p></div></div>
+  <div class="filter"><input id="search" placeholder="Search events or organizations…"><select id="statusFilter"><option>All statuses</option><option>Pending Review</option><option>Approved for Staffing</option><option>Rejected</option><option>Receipt Sent</option></select></div>
+  <div class="list" id="requestList"></div>
+</section>
+<section class="page" id="members">
+  <div class="intro"><div><h2>Members portal</h2><p>Choose an approved event and volunteer for a coverage role.</p></div></div>
+  <div class="callout"><div class="callouticon">✦</div><div><b>Find your next assignment</b><p>Your signup will appear in the lineup for the Editorial Board to review.</p></div></div>
+  <div class="memberform"><div class="field" style="margin:0"><label>Your full name</label><input id="memberName" placeholder="e.g. Alex Santos"></div><div class="field" style="margin:0"><label>Your email</label><input id="memberEmail" type="email" placeholder="you@example.com"></div></div>
+  <div class="list" id="memberList"></div>
+</section>
+<section class="page" id="staffing">
+  <div class="intro"><div><h2>Staffing & receipts</h2><p>Track lineups and manually send acknowledgement receipts.</p></div></div>
+  <div class="policy"><b>Manual sending only</b><p>Receipts are never sent automatically. If roles are vacant, confirm before sending anyway.</p></div>
+  <div class="list" id="staffingList"></div>
+</section>
+<footer>INNOV <span>·</span> Event request and coverage coordination</footer>
+</main>
+</div>
+<div id="modalRoot"></div><div id="toast" class="toast hidden"></div>
+<script>
+const roles=['Photographer','Writer','Graphics & Layout','Videographer'];
+const initialEvents=[
+{id:1,title:'Freshers’ Welcome Week',org:'Student Affairs Office',date:'2026-10-21',venue:'Main Campus Quadrangle',contact:'Mika Reyes',email:'mika@example.org',status:'Pending Review',assignments:[],receipt:false},
+{id:2,title:'Campus Sustainability Forum',org:'Green Campus Society',date:'2026-10-24',venue:'Auditorium B',contact:'Paolo Cruz',email:'paolo@example.org',status:'Pending Review',assignments:[],receipt:false},
+{id:3,title:'CCS Student Research Expo',org:'College of Computing Studies',date:'2026-10-29',venue:'Innovation Hall',contact:'Jamie Santos',email:'jamie@example.org',status:'Approved for Staffing',assignments:[{name:'Alyssa Lim',email:'alyssa@example.com',role:'Photographer'},{name:'Noah Garcia',email:'noah@example.com',role:'Writer'}],receipt:false},
+{id:4,title:'Mental Health Awareness Talk',org:'Peer Support Circle',date:'2026-11-04',venue:'Lecture Room 3',contact:'Sam Dela Cruz',email:'sam@example.org',status:'Approved for Staffing',assignments:[{name:'Mia Flores',email:'mia@example.com',role:'Graphics & Layout'},{name:'Ken Ramos',email:'ken@example.com',role:'Videographer'}],receipt:false},
+{id:5,title:'Arts & Culture Night',org:'University Culture Council',date:'2026-11-08',venue:'Open Grounds',contact:'Rina Bautista',email:'rina@example.org',status:'Receipt Sent',assignments:roles.map((role,i)=>({name:['Lia Tan','Marco Diaz','Bea Ong','Eli Torres'][i],email:'member'+i+'@example.com',role})),receipt:true},
+{id:6,title:'Inter-Department Sports Day',org:'Athletics Committee',date:'2026-11-12',venue:'Sports Complex',contact:'Chris Mendoza',email:'chris@example.org',status:'Rejected',assignments:[],receipt:false}
+];
+let events=structuredClone(initialEvents), nextId=7;
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escAttr(s){return esc(s).replace(/`/g,'&#96;')}
+function dateParts(v){if(!v)return{day:'—',month:'TBD'};let d=new Date(v+'T12:00:00');return{day:d.getDate(),month:d.toLocaleString('en-US',{month:'short'})}}
+function statusClass(s){return s==='Pending Review'?'pending':s==='Approved for Staffing'?'approved':s==='Rejected'?'rejected':'sent'}
+function rolesFilled(e){return new Set(e.assignments.map(a=>a.role))}
+function vacant(e){let filled=rolesFilled(e);return roles.filter(r=>!filled.has(r))}
+function row(e,context){
+ let d=dateParts(e.date), action='';
+ if((context==='requests'||context==='recent')&&e.status==='Pending Review')action=`<button class="btn primary" onclick="review(${e.id})">Review</button>`;
+ else if((context==='requests'||context==='recent')&&e.status==='Approved for Staffing')action=`<button class="btn light" onclick="goto('staffing')">View lineup</button>`;
+ if(context==='members')action=`<button class="btn primary" onclick="volunteer(${e.id})">Volunteer</button>`;
+ if(context==='staffing')action=`<button class="btn light" onclick="lineup(${e.id})">View lineup</button>`+(e.receipt?'<span class="status sent">Receipt sent</span>':`<button class="btn primary" onclick="receipt(${e.id})">Send receipt</button>`);
+ let chips=context==='staffing'?`<div class="chips">${roles.map(r=>`<span class="chip ${rolesFilled(e).has(r)?'filled':''}">${esc(r)} · ${rolesFilled(e).has(r)?'Filled':'Vacant'}</span>`).join('')}</div>`:'';
+ return `<article class="event"><div class="datebox"><b>${d.day}</b><small>${d.month}</small></div><div class="eventbody"><div class="eventtitle">${esc(e.title)}</div><div class="meta"><span>${esc(e.org)}</span><span>·</span><span>${esc(e.venue)}</span><span>·</span><span>${esc(e.date)}</span></div>${chips}</div><span class="status ${statusClass(e.status)}">${esc(e.status)}</span><div class="actions">${action}</div></article>`;
+}
+function empty(title,desc){return `<div class="empty"><b>${title}</b><p>${desc}</p></div>`}
+function render(){
+ const pending=events.filter(e=>e.status==='Pending Review').length, open=events.filter(e=>e.status==='Approved for Staffing').length, sent=events.filter(e=>e.receipt).length;
+ document.getElementById('totalNum').textContent=events.length;document.getElementById('pendingNum').textContent=pending;document.getElementById('openNum').textContent=open;document.getElementById('sentNum').textContent=sent;document.getElementById('pendingCount').textContent=pending;
+ document.getElementById('recentList').innerHTML=events.slice().reverse().slice(0,4).map(e=>row(e,'recent')).join('')||empty('No requests yet','New requests will appear here.');
+ renderRequests();renderMembers();renderStaffing();
+}
+function renderRequests(){let q=(document.getElementById('search')?.value||'').toLowerCase(),s=document.getElementById('statusFilter')?.value||'All statuses';let list=events.filter(e=>(s==='All statuses'||e.status===s)&&[e.title,e.org,e.contact,e.email].some(x=>String(x).toLowerCase().includes(q)));document.getElementById('requestList').innerHTML=list.map(e=>row(e,'requests')).join('')||empty('No matching requests','Try a different search or status filter.')}
+function renderMembers(){let list=events.filter(e=>e.status==='Approved for Staffing');document.getElementById('memberList').innerHTML=list.map(e=>row(e,'members')).join('')||empty('No active events yet','Approved events will appear here for members to choose.')}
+function renderStaffing(){let list=events.filter(e=>['Approved for Staffing','Receipt Sent'].includes(e.status));document.getElementById('staffingList').innerHTML=list.map(e=>row(e,'staffing')).join('')||empty('No events in staffing','Approve a request to start building the lineup.')}
+function goto(page){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('activepage',p.id===page));document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===page));document.getElementById('pageTitle').textContent=({'dashboard':'Dashboard','requests':'Event requests','members':'Members portal','staffing':'Staffing & receipts'})[page];if(page==='requests')renderRequests()}
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.add('hidden'),3000)}
+function modal(html){document.getElementById('modalRoot').innerHTML=`<div class="modalbg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`}
+function closeModal(){document.getElementById('modalRoot').innerHTML=''}
+function review(id){let e=events.find(x=>x.id===id);modal(`<h2>Review event request</h2><p><b>${esc(e.title)}</b><br>${esc(e.org)} · ${esc(e.date)}</p><div class="summary">Approving makes the event visible in the Members portal.<br>Rejecting asks for a reason and simulates an email to the requester.</div><div class="modalactions"><button class="btn light" onclick="closeModal()">Cancel</button><button class="btn danger" onclick="rejectPrompt(${id})">Reject</button><button class="btn primary" onclick="approve(${id})">Approve for staffing</button></div>`)}
+function approve(id){let e=events.find(x=>x.id===id);e.status='Approved for Staffing';closeModal();render();toast('Event approved — now visible to members.')}
+function rejectPrompt(id){modal(`<h2>Reject request</h2><p>Enter a reason for the organization. This demo does not send a real email.</p><div class="field"><label>Reason for rejection</label><textarea id="reason" placeholder="Explain why this request cannot be accepted…"></textarea></div><div class="modalactions"><button class="btn light" onclick="review(${id})">Back</button><button class="btn danger" onclick="reject(${id})">Confirm rejection</button></div>`)}
+function reject(id){let reason=document.getElementById('reason').value.trim();if(!reason){toast('Please enter a rejection reason.');return}let e=events.find(x=>x.id===id);e.status='Rejected';e.reason=reason;closeModal();render();toast('Request rejected. Demo email not sent.')}
+function volunteer(id){let name=document.getElementById('memberName').value.trim(),email=document.getElementById('memberEmail').value.trim();if(!name||!email){modal(`<h2>Member details needed</h2><p>Enter your name and email in the fields above the event list first.</p><div class="modalactions"><button class="btn primary" onclick="closeModal()">Got it</button></div>`);return}let e=events.find(x=>x.id===id);if(e.assignments.some(a=>a.email.toLowerCase()===email.toLowerCase())){toast('You already volunteered for this event.');return}let options=roles.map(r=>`<option>${esc(r)}</option>`).join('');modal(`<h2>Volunteer for event</h2><p>${esc(e.title)} · ${esc(e.date)}</p><div class="field"><label>Coverage role</label><select id="role">${options}</select></div><div class="summary">${esc(name)} · ${esc(email)}</div><div class="modalactions"><button class="btn light" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveVolunteer(${id})">Confirm volunteer</button></div>`)}
+function saveVolunteer(id){let e=events.find(x=>x.id===id),name=document.getElementById('memberName').value.trim(),email=document.getElementById('memberEmail').value.trim(),role=document.getElementById('role').value;e.assignments.push({name,email,role});closeModal();render();toast('Volunteer added to the event lineup.')}
+function lineup(id){let e=events.find(x=>x.id===id);let txt=roles.map(r=>r+': '+(e.assignments.filter(a=>a.role===r).map(a=>a.name).join(', ')||'Vacant')).join('\n');modal(`<h2>${esc(e.title)} — lineup</h2><p>${roles.length-vacant(e).length} of ${roles.length} coverage roles filled.</p><div class="summary">${esc(txt)}</div><div class="modalactions"><button class="btn primary" onclick="closeModal()">Close</button></div>`)}
+function receipt(id){let e=events.find(x=>x.id===id);if(e.receipt){toast('Receipt has already been sent.');return}let v=vacant(e);modal(`<h2>Send acknowledgement receipt?</h2><p>Recipient: ${esc(e.email)}<br>Event: ${esc(e.title)}</p>${v.length?`<div class="summary"><b>Vacant roles (${v.length})</b>\n${v.map(esc).join('\n')}\n\nYou can wait for the lineup to fill or send the receipt anyway.</div>`:'<div class="summary">All four coverage roles are filled. You can manually send the acknowledgement receipt.</div>'}<div class="modalactions"><button class="btn light" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="sendReceipt(${id})">${v.length?'Send anyway':'Confirm send'}</button></div>`)}
+function sendReceipt(id){let e=events.find(x=>x.id===id);e.receipt=true;e.status='Receipt Sent';closeModal();render();toast('Demo only: receipt marked sent. No real email was sent.')}
+document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>goto(b.dataset.page)));
+document.getElementById('search').addEventListener('input',renderRequests);document.getElementById('statusFilter').addEventListener('change',renderRequests);
+document.getElementById('resetBtn').addEventListener('click',()=>{events=structuredClone(initialEvents);render();goto('dashboard');toast('Demo data reset.')});
+render();
+</script>
+</body></html>
